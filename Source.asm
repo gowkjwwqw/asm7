@@ -139,77 +139,56 @@ ReadStringToNumber proc uses RBX RCX RDX R8 R9
 
 
     AlIsMinus:
-        neg RBX                                            ;Если 
+        neg RBX                                            ;Если нашли минус в начале строки, то делаем число отрицательным
         jmp scanningComplete
 
 ReadStringToNumber endp
 
 
-PrintValue proc uses RAX RCX RDX R8 R9 R10 R11
-    ;STEP 1
-    local numberStr[22]: byte
+PrintValue proc uses RAX RCX RDX R8 R9   ;Процедура вывода чисел
+    local numberStr[22]: byte            ;Выводимая строка
 
-    ;STEP 2
-    xor R8, R8
 
-    ;STEP 3
-    mov RAX, sum
+    xor R8, R8                           ;Обнуляем строковый счетчик                                             
 
-    ;STEP 4
-    bt sum, 63
+    mov RAX, sum                         ;Перенос числа в RAX
 
-    ;STEP 5
+    bt sum, 63                           ;Проверяем число на отрицательность, если оно отрицательно - то CF = 1
     jnc SumIsNotMinus
 
-    mov numberStr, '-'
-    inc R8
-    neg RAX
+    mov numberStr, '-'                   ;Записываем минус в начало выводимой строки
+    inc R8                               ;Увеличиваем счетчик на 1 из за смещения чисел
+    neg RAX                              ;Делаем число обратно положительным для удобства вычислений
 
     SumIsNotMinus:
+    mov RBX, 10                          ;Приравниваем RBX к 10 для нахождения остатка - цифр числа
+    xor RCX, RCX                         ;Обнуляем счетчик
 
-    ;STEP 6
-    mov RBX, 10
-
-    ;STEP 7
-    xor RCX, RCX
-
-    ;STEP8
     Delenie:
-        xor RDX, RDX
+        xor RDX, RDX                     ;Обнуляем регистр для остатка
 
-        ;STEP 9
-        div RBX
+        div RBX                          ;Делим и к остатку прибавляем 30h для преобразования в ASCII символ
         add RDX, 30h
 
-        ;STEP 10
-        push RDX
+        push RDX                         ;Записываем остаток в стек и увеличиваем счетчик
         inc RCX
 
-        ;STEP 11
-        cmp RAX, 0
-
-        ;STEP 12
+        cmp RAX, 0                        ;Проверяем, закончилось ли деление
         jnz Delenie
 
-    ;STEP 13
     PerenosVStek:
-        pop RDX
-        mov numberStr[R8], DL
+        pop RDX                          ;Вытаскиваем цифры из стека в обратном порядке 
+        mov numberStr[R8], DL            ;Записываем цифры в выводимую строку по индексу R8
 
-        ;STEP 14
         inc R8
         loop PerenosVStek
 
-    ;STEP 15
-    mov numberStr[R8], 13
+    mov numberStr[R8], 13                ;Добавляем все нужные функциональный символы в конец строки
     mov numberStr[R8+1], 10
     mov numberStr[R8+2], 0
 
-    ;STEP 16
-    lea RAX, numberStr
+    lea RAX, numberStr                   ;Переносим готовую строку с цифрами в RAX и вызываем нашу процедуру для вывода строки в консоль       
     push RAX
-
-    ;STEP 17
     call PrintString
 
     ;STEP 18
@@ -383,4 +362,5 @@ Start proc
 Start endp
 
 end
+
 

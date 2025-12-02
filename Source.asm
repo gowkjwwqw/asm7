@@ -83,7 +83,7 @@ ReadStringToNumber proc uses RBX RCX RDX R8 R9
 
     push RCX                                                ;Алгоритм для проверки строки на наличие лишних минусов
                                                             ;Будем считывать строку с последнего символа до второго и
-    check_minus:                                            :проверять наличие минуса, если есть - выдаём ошибку
+    check_minus:                                            ;проверять наличие минуса, если есть - выдаём ошибку
         mov AL, readStr[RCX]
         cmp AL, '-'
         jz error
@@ -173,7 +173,7 @@ PrintValue proc uses RAX RCX RDX R8 R9   ;Процедура вывода чис
         push RDX                         ;Записываем остаток в стек и увеличиваем счетчик
         inc RCX
 
-        cmp RAX, 0                        ;Проверяем, закончилось ли деление
+        cmp RAX, 0                       ;Проверяем, закончилось ли деление
         jnz Delenie
 
     PerenosVStek:
@@ -191,99 +191,69 @@ PrintValue proc uses RAX RCX RDX R8 R9   ;Процедура вывода чис
     push RAX
     call PrintString
 
-    ;STEP 18
     ret 8
 PrintValue endp
 
 
-WaitAns proc uses RAX RCX RDX R8 R9 R10 R11
-    ;STEP 1
+WaitAns proc uses RAX RCX RDX R8 R9              ;Процедура для ожидания ввода, чтобы дать посмотреть результат
     local readStr: byte, bytesRead: dword
 
-    ;STEP 2
     STACKALLOC 1
 
-    ;STEP 3
-    lea RAX, St5
+    lea RAX, St5                                 ;Выводим строку о том, что ждём ответа пользователя
     push RAX
-
-    ;STEP 4
     call PrintString
 
-    ;STEP 5
-    mov RCX, hStdInput
+    mov RCX, hStdInput                           ;Проделываем аналогичные шаги, что и при прочтении строки при вводе цифр
     lea RDX, readStr
     mov R8, 8
     lea R9, bytesRead
     NULL_FIFTH_ARG
 
-    ;STEP 6
     call ReadConsoleA
 
-    ;STEP 7
     STACKFREE
     ret
 WaitAns endp
 
 
 Start proc
-    ;STEP 1
-    sub RSP, 8*6
+    sub RSP, 8*6                              
 
-
-    ;STEP 2
-    STD_OUTPUT_HANDLE equ -11
+    STD_OUTPUT_HANDLE equ -11      ;Стандартного потока вывода в WinAPI
     mov RCX, STD_OUTPUT_HANDLE
 
+    call GetStdHandle              ;Получаем дескриптор вывода и записываем в hStdOutput
+    mov hStdOutput, RAX       
 
-    ;STEP 3
-    call GetStdHandle
-
-
-    ;STEP 4
-    mov hStdOutput, RAX
-
-
-    ;STEP 5
-    STD_INPUT_HANDLE equ -10
+    STD_INPUT_HANDLE equ -10       ;Аналогично для потока и дескриптора ввода
     mov RCX, STD_INPUT_HANDLE
 
     call GetStdHandle
     mov hStdInput, RAX
 
 
-    ;STEP 6
-    lea RAX, St1
+    lea RAX, St1                   ;Выводим первую строку a = 
     push RAX
     call PrintString
 
+    call ReadStringToNumber        ;Считываем вводимое число
 
-    ;STEP 7
-    call ReadStringToNumber
-
-
-    ;STEP 8
-    cmp R10, 1
+    cmp R10, 1                     ;Если при считывании строки была ошибка, то выходим из программы
     jz exit_error
 
-
-    ;++++
-    cmp RAX, -128
+    cmp RAX, -128                  ;Проверяем, что введённое число лежит в заданных заданием границах, иначе выводим ошибку
     jl error_range
     cmp RAX, 127
     jg error_range
 
-
-    ;STEP 9
-    push RAX
+    push RAX                       ;Будем использовать регистры R14 и R15 для нахождения минимального числа
     mov R14, RAX
 
-    pop RAX
+    pop RAX                        ;Введенное число в консоли заносим в R8
     mov R8, RAX
 
-
-    ;STEP 10
-    lea RAX, St2
+    lea RAX, St2                   ;Выводим b = , далее аналогичные действия, что при a
     push RAX
     call PrintString
 
@@ -292,38 +262,28 @@ Start proc
     cmp R10, 1
     jz exit_error
 
-
-    ;++++
     cmp RAX, -128
     jl error_range
     cmp RAX, 127
     jg error_range
 
-
-    ;STEP 11
-    push RAX
+    push RAX      
     mov R15, RAX
 
-    pop RAX
+    pop RAX                        ;Добавляем к первому числу второе
     add R8, RAX
 
 
-
-    ;STEP 12
-    lea RAX, St3
+    lea RAX, St3                   ;Выводим строку 27 + a + b = 
     push RAX
     call PrintString
 
-    ;++++
-    add R8, 27
+    add R8, 27                     ;Добавляем к числу константу
 
-    ;STEP 13
-    mov sum, R8
+    mov sum, R8                    ;Выводим число
     call PrintValue
 
-
-    ;++++
-    cmp R14, R15
+    cmp R14, R15                   ;Алгоритм для сравнения двух чисел, меньшее выводим через ту же процедуру, что и результат чисел
     js A_G
 
     mov sum, R15
@@ -335,25 +295,21 @@ Start proc
         call PrintValue
 
 
-    ;STEP 14
     Wait_M:
-        call WaitAns
+        call WaitAns               ;Ожидание ответа пользователя
 
 
     exit:
-        xor RCX, RCX
+        xor RCX, RCX               ;Выход без ошибки
         call ExitProcess
 
-    ;+++++
-    error_range:
+    error_range:                   ;Выход с ошибкой о неправильно введеном числе, вне диапазона
         lea RAX, St6
         push RAX
         call PrintString
         jmp Wait_M
 
-
-    ;++++
-    exit_error:
+    exit_error:                    ;Выход с ошибкой о вводе неправильного символа
         lea RAX, St4
         push RAX
         call PrintString
@@ -362,5 +318,3 @@ Start proc
 Start endp
 
 end
-
-

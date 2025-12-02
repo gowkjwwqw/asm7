@@ -206,7 +206,7 @@ WaitAns proc uses RAX RCX RDX R8 R9              ;Процедура для ож
 
     mov RCX, hStdInput                           ;Проделываем аналогичные шаги, что и при прочтении строки при вводе цифр
     lea RDX, readStr
-    mov R8, 8
+    mov R8, 1
     lea R9, bytesRead
     NULL_FIFTH_ARG
 
@@ -318,3 +318,4 @@ Start proc
 Start endp
 
 end
+

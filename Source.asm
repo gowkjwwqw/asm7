@@ -51,98 +51,95 @@ PrintString proc uses RAX RCX RDX R8 R9, string: qword      ;Директива 
     mov RCX, hStdOutput                                     ;Куда выводим текст
     mov RDX, string                                         ;Какой текст
     mov R8, RAX                                             ;Длина текста
-    lea R9, bytesWritten                                    ;
+    lea R9, bytesWritten                                    ;Куда сохранить количество записанных байт
 
-    NULL_FIFTH_ARG
+    NULL_FIFTH_ARG                                          ;Обнуление пятого аргумента
 
-    call WriteConsoleA
+    call WriteConsoleA                                      ;Выводим текст
 
-    STACKFREE
+    STACKFREE                                               ;Освобождаем стек
 
     ret
 PrintString endp
 
 
 ReadStringToNumber proc uses RBX RCX RDX R8 R9
-    local readStr[64]: byte, bytesRead: dword
+    local readStr[64]: byte, bytesRead: dword               ;Два локальных параметра, 1 - полученная строка, 2 - сколько байт прочитали
 
-    STACKALLOC 2
+    STACKALLOC 2                                            
 
-    mov RCX, hStdInput
-    lea RDX, readStr
-    mov R8, 64
-    lea R9, bytesRead
+    mov RCX, hStdInput                                      ;Откуда читаем текст
+    lea RDX, readStr                                        ;Какой текст
+    mov R8, 64                                              ;Длина считываемой строки
+    lea R9, bytesRead                                       ;Сколько байт прочитали
     NULL_FIFTH_ARG
 
-    call ReadConsoleA
+    call ReadConsoleA                                       ;Считываем строку с консоли
 
-    xor RCX, RCX
+    xor RCX, RCX                                            ;Сбрасываем счетчик
+    mov ECX, bytesRead                                      ;Записываем в него длину прочитанной строки
+    sub ECX, 2                                              ;Избавимся от символов переноса строки и возврата каретки.
 
-    mov ECX, bytesRead
 
-    sub ECX, 2
-
-    ;---------------
-    push RCX
-
-    check_minus:
+    push RCX                                                ;Алгоритм для проверки строки на наличие лишних минусов
+                                                            ;Будем считывать строку с последнего символа до второго и
+    check_minus:                                            :проверять наличие минуса, если есть - выдаём ошибку
         mov AL, readStr[RCX]
         cmp AL, '-'
         jz error
         loop check_minus
 
     pop RCX
-    ;------------------
 
-    xor RBX, RBX
-    mov R8, 1
+
+    xor RBX, RBX                                           ;Обнуляем RBX, в него будем записывать число
+    mov R8, 1                                              ;Используем для хранения степени десятки
 
     m_StringScan:
-        dec RCX
+        dec RCX                                            ;Ведём счетчик для проверки, завершили ли мы проверять строку
         cmp RCX, -1
 
         jz scanningComplete
 
-        xor RAX, RAX
+        xor RAX, RAX                                       ;Обнуляем RAX
+        mov AL, readStr[RCX]                               ;Вводим в него очередной символ строки, обративший по индексу
 
-        mov AL, readStr[RCX]
-
-        cmp al, '-'
+        cmp al, '-'                                        ;И проверяем на наличие минуса
         jz AlIsMinus
 
-        jmp eval
+        jmp eval                                           ;Если не минус, то переходим к анализу цифры
 
 
     eval:
-        cmp AL, 30h
+        cmp AL, 30h                                        ;Проверяем, что наш очередной символ является цифрой (от 0 до 9)
         jl error
         cmp AL, 39h
         jg error
 
-        sub RAX, 30h
-        mul R8
-        add RBX, RAX
-        mov RAX, 10
-        mul R8
+        sub RAX, 30h                                       ;Избавляем цифру от ascii кода, чтобы получить чистую цифру
+        mul R8                                             ;Умножаем цифру на степень десятки
+        add RBX, RAX                                       ;Добавляем цифру с правильной разрядностью в RBX
+        mov RAX, 10                                        
+        mul R8                                             ;Увеличиваем в 10 раз регистр R8 для работы со след. разрядом
         mov R8, RAX
         jmp m_StringScan
 
 
     error:
-        mov R10, 1
+        mov R10, 1                                         ;Помечаем, что произошла ошибка
         STACKFREE
         ret 8
 
 
     scanningComplete:
-        mov R10, 0
-        mov RAX, RBX
+        mov R10, 0                                          ;Сканирование прошло успешно
+        mov RAX, RBX                                        ;Сохраняем результат в RAX
         STACKFREE
         ret 8
 
 
     AlIsMinus:
-        neg RBX
+        neg RBX                                            ;Если 
         jmp scanningComplete
 
 ReadStringToNumber endp
@@ -386,3 +383,4 @@ Start proc
 Start endp
 
 end
+

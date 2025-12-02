@@ -1,57 +1,57 @@
-extrn GetStdHandle  :proc,
-      lstrlenA      :proc,
-      WriteConsoleA :proc,
-      ReadConsoleA  :proc,
-      ExitProcess   :proc
+extrn GetStdHandle  :proc,                  ;Получения дескриптора - спец номера для обращения к объекту, для которого мы хотим использовать потоки чтения и записи             
+      lstrlenA      :proc,                  ;Получение длины строки
+      WriteConsoleA :proc,                  ;Запись символов в поток
+      ReadConsoleA  :proc,                  ;Чтение символов из потока
+      ExitProcess   :proc                   ;Выход из программы
 
 .data
-hStdOutput DQ ?
-hStdInput DQ ?
+hStdOutput DQ ?                             ;Дескриптор вывода
+hStdInput DQ ?                              ;Дескриптор ввода
 
-sum DQ ?
+sum DQ ?                                    ;Сумма чисел
 
 St1 DB 'a = ', 0
 St2 DB 'b = ', 0
 St3 DB '27 + a + b = ', 0
-St4 DB 'Invalid character', 13, 10, 0
+St4 DB 'Invalid character', 13, 10, 0            
 St5 DB 'Press any key to exit...', 0
 St6 DB 'Number out of range', 13, 10, 0
 
 .code
 
-STACKALLOC macro arg
-    push R15
-    mov R15, RSP
-    sub RSP, 8*4
+STACKALLOC macro arg                        ;Макрос выравнивания стека и выделения места под аргументы
+    push R15                                ;Используем R15 для запоминания старого SP
+    mov R15, RSP                            ;Запоминаем старый SP
+    sub RSP, 8*4                            ;Выделяем место под __fastcall
     if arg
-      sub RSP, 8*arg
+      sub RSP, 8*arg                        ;Если требуется, выделяем место под доп. аргументы
     endif
-    and SPL, 0F0h
+    and SPL, 0F0h                           ;Выравниваем стек по 16-байтовой границе
 endm
 
 
-NULL_FIFTH_ARG macro
-    mov qword ptr [RSP + 32], 0
+NULL_FIFTH_ARG macro                        ;Макрос для обнуления пятого аргумента в WriteConsoleA и ReadConsoleA
+    mov qword ptr [RSP + 32], 0             ;Отступаем по стеку на 32 байта и обнуляем пятый аргумент
 endm
 
 
-STACKFREE macro
+STACKFREE macro                             ;Макрос восстанавливления старого значения SP
     mov RSP, R15
     pop R15
 endm
 
-PrintString proc uses RAX RCX RDX R8 R9 R10 R11, string: qword
-    local bytesWritten: qword
+PrintString proc uses RAX RCX RDX R8 R9, string: qword      ;Директива uses позволяет при входе в процедуру сохранить нужные регистры в стек и при выходе восстановить их
+    local bytesWritten: qword                               ;Локальная переменная, в которой мы сохраним количество записанных в консоль байт
 
-    STACKALLOC 1
+    STACKALLOC 1                                            ;Выделяем место под 5 аргументов
 
-    mov RCX, string
-    call lstrlenA
+    mov RCX, string                                         ;Передаём строку в RCX, строку же мы передали в string перед вызовом процедуры в RAX
+    call lstrlenA                                           ;В RAX сохранится длина текста
 
-    mov RCX, hStdOutput
-    mov RDX, string
-    mov R8, RAX
-    lea R9, bytesWritten
+    mov RCX, hStdOutput                                     ;Куда выводим текст
+    mov RDX, string                                         ;Какой текст
+    mov R8, RAX                                             ;Длина текста
+    lea R9, bytesWritten                                    ;
 
     NULL_FIFTH_ARG
 
@@ -384,4 +384,5 @@ Start proc
         jmp Wait_M
 
 Start endp
+
 end
